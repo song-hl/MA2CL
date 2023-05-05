@@ -1,0 +1,77 @@
+# FROM pytorch/pytorch:1.11.0-cuda11.3-cudnn8-runtime
+# FROM singularitybase.azurecr.io/base/job/pytorch/1.9.0-cuda11.3-cudnn8-devel:20220713T193524355
+FROM singularitybase.azurecr.io/base/job/pytorch/1.11.0-cuda11.6:20220610T172305953
+
+################################
+# Install apt-get Requirements #
+################################
+ENV LANG C.UTF-8
+ENV APT_INSTALL="apt-get install -y --no-install-recommends"
+ENV PIP_INSTALL="python -m pip --no-cache-dir install --upgrade --default-timeout 100"
+RUN rm -rf /var/lib/apt/lists/* \
+    /etc/apt/sources.list.d/cuda.list \
+    /etc/apt/sources.list.d/nvidia-ml.list && \
+    apt-get update
+RUN DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+    apt-utils build-essential ca-certificates dpkg-dev pkg-config software-properties-common
+RUN DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+    cifs-utils openssh-server nfs-common net-tools iputils-ping iproute2 htop
+RUN DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+    tar wget git swig vim curl tmux zip unzip rar unrar zsh cmake libboost-all-dev
+RUN DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+    libgl1-mesa-dev libgl1-mesa-glx libglew-dev libosmesa6-dev xpra xserver-xorg-dev patchelf
+RUN DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+    libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-gfx-dev libdirectfb-dev libst-dev mesa-utils xvfb x11vnc
+RUN DEBIAN_FRONTEND=noninteractive $APT_INSTALL libncurses5-dev libncursesw5-dev libopenblas-base libopenmpi-dev
+RUN DEBIAN_FRONTEND=noninteractive apt purge hwloc-nox libhwloc-dev libhwloc-plugins -y
+
+###################
+# python packages #
+###################
+RUN ${PIP_INSTALL} wandb hydra-core kornia pysc2 gfootball mujoco mujoco-py \
+    scikit-image scikit-learn scikit-video \
+    tensorboard tensorboardX pandas seaborn matplotlib opencv-python==4.5.5.64
+
+#############
+# MARL ENVS #
+#############
+WORKDIR /marl_envs
+ADD *.tar.gz ./
+ADD *.zip ./
+# StarCraftII #
+RUN unzip -P iagreetotheeula SC2.4.10.zip && \
+    mkdir -p StarCraftII/Maps/ && \
+    unzip SMAC_Maps.zip && mv SMAC_Maps StarCraftII/Maps/ && \
+    rm -rf SC2.4.10.zip && rm -rf SMAC_Maps.zip && rm -rf __MACOSX/ 
+ENV SC2PATH /marl_envs/StarCraftII
+# Bi-DexHands #
+RUN ${PIP_INSTALL} -e ./isaacgym/python
+# Multi-Agent Mujoco #
+RUN mkdir -p /root/.mujoco && cp -r mujoco210 /root/.mujoco/
+ENV LD_LIBRARY_PATH /root/.mujoco/mujoco210/bin:$LD_LIBRARY_PATH
+ENV LD_PRELOAD /usr/lib/x86_64-linux-gnu/libGLEW.so
+# Gym-Pybullet-Drones
+ADD gym-pybullet-drones/ ./gym-pybullet-drones/
+RUN pip install ./gym-pybullet-drones/ torch==1.11.0a0+17540c5 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+##############
+# oh-my-posh #
+##############
+RUN wget https://ghproxy.com/https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh && \
+    chmod +x /usr/local/bin/oh-my-posh && \
+    mkdir ~/.poshthemes && \
+    wget https://ghproxy.com/https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip -O ~/.poshthemes/themes.zip && \
+    unzip ~/.poshthemes/themes.zip -d ~/.poshthemes && \
+    chmod u+rw ~/.poshthemes/*.json && \
+    rm ~/.poshthemes/themes.zip 
+RUN echo 'eval "$(oh-my-posh --init --shell bash --config ~/.poshthemes/montys.omp.json)"' > $HOME/.bashrc
+
+##################
+# Apt auto clean #
+##################
+RUN ldconfig && \
+    # apt-get clean && \
+    # apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /tmp/* $HOME/.cache/pip
+RUN chmod 777 -R /opt/conda/
+# RUN apt update && apt install libboost-all-dev -y && apt purge hwloc-nox libhwloc-dev libhwloc-plugins -y
