@@ -11,9 +11,6 @@ import setproctitle
 import wandb
 from omegaconf import DictConfig, OmegaConf
 
-# from envs.dexteroushandenvs.utils.config import get_args, load_env_cfg, parse_sim_params
-# from envs.dexteroushandenvs.utils.parse_task import parse_task
-# from envs.dexteroushandenvs.utils.process_marl import get_AgentIndex
 from envs.env_wrappers import ShareDummyVecEnv, ShareSubprocVecEnv
 from envs.starcraft2.smac_maps import get_map_params
 from envs.starcraft2.StarCraft2_Env import StarCraft2Env
@@ -25,24 +22,18 @@ warnings.filterwarnings("ignore")
 
 
 def get_runner(env_name, algorithm_name):
-    # assert env_name in ["football", "hands", "mujoco", "StarCraft2"]
+    assert env_name in ["football", "mujoco", "StarCraft2"]
     runner_dict = {
         "seperated": {
             "football": runners.separated.football_runner.FootballRunner,
-            "pixel_football": runners.separated.football_runner.FootballRunner,
-            # "hands": runners.separated.hands_runner.HandsRunner,
             "mujoco": runners.separated.mujoco_runner.MujocoRunner,
             "StarCraft2": runners.separated.smac_runner.SMACRunner,
-            "butterfly": runners.separated.butterfly_runner.ButterflyRunner,
             "drone": runners.separated.drone_runner.DroneRunner,
         },
         "shared": {
             "football": runners.shared.football_runner.FootballRunner,
-            "pixel_football": runners.shared.football_runner.FootballRunner,
-            # "hands": runners.shared.hands_runner.HandsRunner,
             "mujoco": runners.shared.mujoco_runner.MujocoRunner,
             "StarCraft2": runners.shared.smac_runner.SMACRunner,
-            "butterfly": runners.shared.butterfly_runner.ButterflyRunner,
             "drone": runners.shared.drone_runner.DroneRunner,
         },
     }
@@ -64,16 +55,6 @@ def make_env(all_args: DictConfig, eval=False):
                     "sight_range": all_args.sight_range
                 }
                 env = FootballEnv(env_args=env_args)
-            elif all_args.env_name == "pixel_football":
-                from envs.football.pixel_football_env import PixelFootballEnv
-
-                env_args = {
-                    "scenario": all_args.scenario,
-                    "n_agent": all_args.n_agent,
-                    "reward": "scoring",
-                    # "pre_transform_image_size": all_args.pre_transform_image_size,
-                }
-                env = PixelFootballEnv(env_args=env_args)
             elif all_args.env_name == "mujoco":
                 from envs.ma_mujoco.multiagent_mujoco.mujoco_multi import MujocoMulti
 
@@ -86,9 +67,6 @@ def make_env(all_args: DictConfig, eval=False):
                 env = MujocoMulti(env_args=env_args)
             elif all_args.env_name == "StarCraft2":
                 env = StarCraft2Env(all_args)
-            elif all_args.env_name == "butterfly":
-                from envs.butterfly.butterfly_env import ButterflyEnv
-                env = ButterflyEnv(all_args)
             elif all_args.env_name == "drone":
                 env_args = {
                     "map_name": all_args.map_name,
@@ -118,19 +96,6 @@ def make_env(all_args: DictConfig, eval=False):
             all_args.use_share_obs = True
         else:
             all_args.use_share_obs = False
-
-    if all_args.env_name == "hands":
-        pass
-        # args = get_args(all_args=all_args)
-        # cfg = load_env_cfg(args)
-        # cfg["env"]["numEnvs"] = all_args.n_rollout_threads
-        # all_args.episode_length = cfg["env"]["episodeLength"]
-        # sim_params = parse_sim_params(args, cfg)
-        # agent_index = get_AgentIndex(cfg)
-        # if not os.path.exists(cfg["env"]["asset"]["assetRoot"]):
-        #     cfg["env"]["asset"]["assetRoot"] = cfg["env"]["asset"]["assetRoot"][1:]
-        # env = parse_task(args, cfg, sim_params, agent_index)
-        # return env
 
     elif not eval:
         if all_args.n_rollout_threads == 1:
@@ -162,26 +127,6 @@ def main(all_args: DictConfig):
     if all_args.seed < 0:
         all_args.seed = np.random.randint(1000, 10000)
     print("seed is :", all_args.seed)
-
-    # if all_args.env_name == "hands":
-    #     print(
-    #         termcolor.colored(
-    #             "WARNING: You can only use the following command when using 'train.py'",
-    #             "yellow",
-    #         )
-    #     )
-    #     print(
-    #         termcolor.colored(
-    #             "\tpython train.py --config-path ./configs/<ALGO>/hands --config-name <TASK>",
-    #             "green",
-    #         )
-    #     )
-    #     print(
-    #         termcolor.colored(
-    #             "No extra args can be added in this case. Please modify items in yaml files beforing running the command",
-    #             "yellow",
-    #         )
-    #     )
 
     if all_args.algorithm_name == "rmappo":
         all_args.use_recurrent_policy = True

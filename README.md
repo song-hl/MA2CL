@@ -5,7 +5,7 @@ pip install torch wandb hydra-core kornia pysc2 gfootball mujoco mujoco-py \
     scikit-image scikit-learn scikit-video \
     tensorboard tensorboardX pandas seaborn matplotlib opencv-python==4.5.5.64
 ```
-An alternative way is to use the provided dockerfile to build docker, and before building docker image, you need to download `IsaacGym_Preview_3_Package.tar.gz`, `mujoco210-linux-x86_64.tar.gz`, `SC2.4.10.zip` and `SMAC_Maps.zip` in `docker` folder
+An alternative way is to use the provided dockerfile to build docker, and before building docker image, you need to download  `mujoco210-linux-x86_64.tar.gz`, `SC2.4.10.zip` and `SMAC_Maps.zip` in `docker` folder
 
 ### Multi-Agent Quadcopter Control
 Folling the instrctions in https://github.com/utiasDSL/gym-pybullet-drones to setup the environment.
@@ -24,9 +24,6 @@ Run the script
 bash install_sc2.sh
 ```
 Or you could install them manually to other path you like, just follow here: https://github.com/oxwhirl/smac.
-
-### Google Research Football
-Please following the instructios in https://github.com/google-research/football. 
 
 ## How to run
 When your environment is ready, you could run `train.py` provided configs. For example:
